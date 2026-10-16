@@ -18,7 +18,7 @@ async function load() {
     if (me && !player(me)) { me = null; store.set("playerId", null); }
     render();
   } catch (e) {
-    if (!S) app.innerHTML = `<div class="empty"><div class="ico">📡</div><h3>Can't reach the server</h3><p>${esc(e.message)}</p></div>`;
+    if (!S) app.innerHTML = `<div class="empty"><div class="ico">📡</div><h3>Server non raggiungibile</h3><p>${esc(e.message)}</p></div>`;
   }
 }
 const serverNow = () => Date.now() + (S?.clockSkew || 0);
@@ -51,7 +51,7 @@ function render() {
 
 function renderTabs(active) {
   const t = (key, label, icon) => `<a href="#/${key}" class="${active === key ? "on" : ""}">${icon}<span>${label}</span></a>`;
-  tabbar.innerHTML = t("games", "Games", ICON.ball) + t("standings", "Standings", ICON.trophy) + t("me", "Me", ICON.person);
+  tabbar.innerHTML = t("games", "Partite", ICON.ball) + t("standings", "Classifica", ICON.trophy) + t("me", "Profilo", ICON.person);
 }
 
 function navbar({ title, back, right = "" }) {
@@ -75,16 +75,16 @@ function gameCard(g) {
   let foot;
   if (g.status === "settled") {
     const pts = g.results[me];
-    foot = `<span>${g.participants} player${g.participants === 1 ? "" : "s"}</span><span class="${pts > 0 ? "green" : ""}" style="font-weight:600">${pts != null ? `+${pts} pts` : "Didn't play"}</span>`;
+    foot = `<span>${g.participants} giocator${g.participants === 1 ? "e" : "i"}</span><span class="${pts > 0 ? "green" : ""}" style="font-weight:600">${pts != null ? `+${pts} pt` : "Non hai giocato"}</span>`;
   } else if (!g.locked) {
     foot = `<div style="flex:1;margin-right:16px"><div class="meter"><i style="width:${used}%"></i></div></div><span class="mono">${used}/${S.creditsPerGame}</span>`;
   } else {
-    foot = `<span>${g.participants} player${g.participants === 1 ? "" : "s"} in</span><span>${used ? `${used} credits played` : "No bets"}</span>`;
+    foot = `<span>${g.participants} giocator${g.participants === 1 ? "e" : "i"} in gara</span><span>${used ? `${used} crediti giocati` : "Nessuna giocata"}</span>`;
   }
   return `<a class="gcard" href="#/game/${g.id}">
     <div class="top"><span class="meta">${esc(fmtDate(g.startsAt))}</span><span class="pill ${st.cls}">${st.label}</span></div>
     <h3>${esc(g.title)}</h3>
-    <div class="meta">${g.bets.length} bet${g.bets.length === 1 ? "" : "s"}${g.location ? " · " + esc(g.location) : ""}${!g.locked ? " · " + countdown(new Date(g.startsAt) - serverNow()) : ""}</div>
+    <div class="meta">${g.bets.length} scommess${g.bets.length === 1 ? "a" : "e"}${g.location ? " · " + esc(g.location) : ""}${!g.locked ? " · " + countdown(new Date(g.startsAt) - serverNow()) : ""}</div>
     <div class="foot">${foot}</div>
   </a>`;
 }
@@ -95,11 +95,11 @@ function viewGames() {
   const final = S.games.filter((g) => g.status === "settled");
   const sec = (label, list) => list.length ? `<div class="section-h">${label}</div>${list.map(gameCard).join("")}<div style="height:16px"></div>` : "";
   const name = player(me)?.name;
-  return navbar({ title: "Games", right: meAvatar() }) +
-    `<h1 class="largetitle">Games</h1>` +
-    (name ? `<p class="subtitle">Hi ${esc(name)} — ${S.creditsPerGame} credits to play every game.</p>` : "") +
-    (S.games.length ? sec("Upcoming", open) + sec("Waiting for results", closed) + sec("Final", final)
-      : `<div class="empty"><div class="ico">🏀</div><h3>No games yet</h3><p>The admin will post bets for the next game soon.</p></div>`);
+  return navbar({ title: "Partite", right: meAvatar() }) +
+    `<h1 class="largetitle">Partite</h1>` +
+    (name ? `<p class="subtitle">Ciao ${esc(name)} — hai ${S.creditsPerGame} crediti da giocare in ogni partita.</p>` : "") +
+    (S.games.length ? sec("In programma", open) + sec("In attesa dei risultati", closed) + sec("Concluse", final)
+      : `<div class="empty"><div class="ico">🏀</div><h3>Ancora nessuna partita</h3><p>L'admin pubblicherà presto le scommesse per la prossima partita.</p></div>`);
 }
 
 // ---------- game detail ----------
@@ -122,29 +122,29 @@ function viewGame(g) {
   let hero = "";
   if (editable) {
     hero = `<div class="credits-hero"><div class="row-x">
-      <div class="big" id="left">${left}<small> / ${S.creditsPerGame} credits left</small></div>
-      <div class="cd">Closes at tip-off<br><b class="tint">${countdown(new Date(g.startsAt) - serverNow())}</b></div>
+      <div class="big" id="left">${left}<small> / ${S.creditsPerGame} crediti rimasti</small></div>
+      <div class="cd">Chiude alla palla a due<br><b class="tint">${countdown(new Date(g.startsAt) - serverNow())}</b></div>
     </div><div class="meter"><i id="leftbar" style="width:${used}%"></i></div></div>`;
   } else if (g.status === "settled") {
     const pts = g.results[me];
     hero = `<div class="credits-hero"><div class="row-x">
-      <div class="big ${pts > 0 ? "green" : ""}">${pts != null ? "+" + pts : "—"}<small> points</small></div>
-      <div class="cd">${pts != null ? `You played ${usedCredits(g)} credits` : "You didn't play"}</div></div></div>`;
+      <div class="big ${pts > 0 ? "green" : ""}">${pts != null ? "+" + pts : "—"}<small> punti</small></div>
+      <div class="cd">${pts != null ? `Hai giocato ${usedCredits(g)} crediti` : "Non hai giocato"}</div></div></div>`;
   } else {
-    hero = `<div class="credits-hero"><div class="row-x"><div><b>Betting closed</b><div class="hint" style="margin-top:4px">Everyone's picks are now visible. Points are added when the admin posts results.</div></div></div></div>`;
+    hero = `<div class="credits-hero"><div class="row-x"><div><b>Scommesse chiuse</b><div class="hint" style="margin-top:4px">Ora le giocate di tutti sono visibili. I punti arrivano quando l'admin pubblica i risultati.</div></div></div></div>`;
   }
 
   const bets = g.bets.map((b, i) => betSection(g, b, i, d, left, editable)).join("");
   let ranking = "";
   if (g.status === "settled") {
     const rows = Object.entries(g.results).sort((a, b) => b[1] - a[1]);
-    if (rows.length) ranking = `<div class="section-h">Game results</div><div class="section"><div class="list">${rows.map(([pid, pts], i) =>
-      `<div class="row"><span class="rank">${i + 1}</span><span class="grow truncate">${esc(player(pid)?.name || "Former player")}${pid === me ? '<span class="me-tag">YOU</span>' : ""}</span><span class="pts-r ${pts > 0 ? "green" : ""}">+${pts}</span></div>`).join("")}</div></div>`;
+    if (rows.length) ranking = `<div class="section-h">Risultati della partita</div><div class="section"><div class="list">${rows.map(([pid, pts], i) =>
+      `<div class="row"><span class="rank">${i + 1}</span><span class="grow truncate">${esc(player(pid)?.name || "Ex giocatore")}${pid === me ? '<span class="me-tag">TU</span>' : ""}</span><span class="pts-r ${pts > 0 ? "green" : ""}">+${pts}</span></div>`).join("")}</div></div>`;
   }
 
-  const dock = editable ? `<div class="dock"><div class="inner"><button class="btn" id="save" ${dirty[g.id] ? "" : "disabled"}>${dirty[g.id] ? "Save bets" : (g.wagers[me]?.length ? "Bets saved ✓" : "Pick an option to bet")}</button></div></div>` : "";
+  const dock = editable ? `<div class="dock"><div class="inner"><button class="btn" id="save" ${dirty[g.id] ? "" : "disabled"}>${dirty[g.id] ? "Salva giocate" : (g.wagers[me]?.length ? "Giocate salvate ✓" : "Scegli un'opzione per giocare")}</button></div></div>` : "";
 
-  return navbar({ title: g.title, back: { href: "#/games", label: "Games" }, right: `<span class="pill ${st.cls}">${st.label}</span>` }) +
+  return navbar({ title: g.title, back: { href: "#/games", label: "Partite" }, right: `<span class="pill ${st.cls}">${st.label}</span>` }) +
     `<h1 class="largetitle">${esc(g.title)}</h1>
      <p class="subtitle">${esc(fmtDate(g.startsAt))}${g.location ? " · " + esc(g.location) : ""}</p>` +
     hero + bets + ranking + (editable ? `<div style="height:80px"></div>` : "") + dock;
@@ -177,12 +177,12 @@ function betSection(g, b, i, d, left, editable) {
           <span class="val" data-val>${mine.amount}</span>
           <button data-step="1" ${left <= 0 ? "disabled" : ""}>+</button>
         </div>
-        <span class="win" data-win>${mine.amount ? `Win ${Math.round(mine.amount * opt.odds)} pts` : "Set your stake"}</span>
+        <span class="win" data-win>${mine.amount ? `Vinci ${Math.round(mine.amount * opt.odds)} pt` : "Scegli la puntata"}</span>
       </div>
       <input type="range" min="0" max="${S.creditsPerGame}" step="1" value="${mine.amount}" data-range>
       <div class="chips">
         <button class="chip" data-add="10">+10</button><button class="chip" data-add="25">+25</button>
-        <button class="chip" data-add="all">All in</button><button class="chip" data-clear style="color:var(--red)">Remove</button>
+        <button class="chip" data-add="all">All in</button><button class="chip" data-clear style="color:var(--red)">Rimuovi</button>
       </div>
     </div>`;
   }
@@ -190,12 +190,12 @@ function betSection(g, b, i, d, left, editable) {
   let foot = "";
   if (!editable && mine && settled) {
     const pts = b.result === "void" ? mine.amount : b.result === mine.optionId ? Math.round(mine.amount * (b.options.find((o) => o.id === mine.optionId)?.odds || 1)) : 0;
-    foot = `<div class="section-f">You staked ${mine.amount} → <b class="${pts ? "green" : "red"}">${pts ? "+" + pts + " pts" : "lost"}</b>${b.result === "void" ? " (bet voided, stake returned)" : ""}</div>`;
+    foot = `<div class="section-f">Hai puntato ${mine.amount} → <b class="${pts ? "green" : "red"}">${pts ? "+" + pts + " pt" : "persa"}</b>${b.result === "void" ? " (scommessa annullata, puntata restituita)" : ""}</div>`;
   } else if (!editable && mine) {
-    foot = `<div class="section-f">Your stake: ${mine.amount} credits</div>`;
+    foot = `<div class="section-f">La tua puntata: ${mine.amount} crediti</div>`;
   }
 
-  return `<div class="section-h">Bet ${i + 1}${b.result === "void" ? " · Void" : ""}</div>
+  return `<div class="section-h">Scommessa ${i + 1}${b.result === "void" ? " · Annullata" : ""}</div>
     <div class="section"><div class="list">
       <div class="row"><div class="grow" style="font-weight:600">${esc(b.question)}</div></div>
       ${opts}${stake}
@@ -239,7 +239,7 @@ function bind() {
       range.value = w.amount;
       const opt = g.bets.find((b) => b.id === betId).options.find((o) => o.id === w.optionId);
       box.querySelector("[data-val]").textContent = w.amount;
-      box.querySelector("[data-win]").textContent = w.amount ? `Win ${Math.round(w.amount * opt.odds)} pts` : "Set your stake";
+      box.querySelector("[data-win]").textContent = w.amount ? `Vinci ${Math.round(w.amount * opt.odds)} pt` : "Scegli la puntata";
       const used = draftTotal(d);
       $("#left").firstChild.textContent = S.creditsPerGame - used;
       $("#leftbar").style.width = used + "%";
@@ -253,7 +253,7 @@ function bind() {
       const wagers = Object.entries(d).filter(([, w]) => w.amount > 0).map(([betId, w]) => ({ betId, ...w }));
       await rpc("save_wagers", { p_game: g.id, p_player: me, p_wagers: wagers });
       dirty[g.id] = false;
-      toast("Bets saved 🏀");
+      toast("Giocate salvate 🏀");
       if (navigator.vibrate) navigator.vibrate(15);
       await load();
     } catch (err) { toast(err.message, true); e.target.disabled = false; }
@@ -269,37 +269,37 @@ function viewStandings() {
   const podium = lb.length && lb[0].points > 0 ? `<div class="podium">${order.map((r) => {
     const idx = lb.indexOf(r);
     return `<div class="p ${idx === 0 ? "first" : ""}"><div class="avatar">${esc(initials(r.name))}</div>
-      <div class="block" style="padding-top:${idx === 0 ? 22 : idx === 1 ? 14 : 8}px"><div class="medal">${medal[idx]}</div><div class="name">${esc(r.name)}</div><div class="pts">${r.points} pts</div></div></div>`;
+      <div class="block" style="padding-top:${idx === 0 ? 22 : idx === 1 ? 14 : 8}px"><div class="medal">${medal[idx]}</div><div class="name">${esc(r.name)}</div><div class="pts">${r.points} pt</div></div></div>`;
   }).join("")}</div>` : "";
   const list = lb.length ? `<div class="section"><div class="list">${lb.map((r, i) =>
     `<div class="row indent"><span class="rank">${i + 1}</span>
-      <div class="grow"><div class="title truncate">${esc(r.name)}${r.playerId === me ? '<span class="me-tag">YOU</span>' : ""}</div>
-      <div class="sub">${r.games} game${r.games === 1 ? "" : "s"} · ${r.wins} winning pick${r.wins === 1 ? "" : "s"}</div></div>
+      <div class="grow"><div class="title truncate">${esc(r.name)}${r.playerId === me ? '<span class="me-tag">TU</span>' : ""}</div>
+      <div class="sub">${r.games} partit${r.games === 1 ? "a" : "e"} · ${r.wins} giocat${r.wins === 1 ? "a vincente" : "e vincenti"}</div></div>
       <span class="pts-r">${r.points}</span></div>`).join("")}</div>
-      <div class="section-f">Points = credits staked × odds on every winning pick, summed over all finished games.</div></div>`
-    : `<div class="empty"><div class="ico">🏆</div><h3>No players yet</h3></div>`;
-  return navbar({ title: "Standings", right: meAvatar() }) + `<h1 class="largetitle">Standings</h1>` + podium + list;
+      <div class="section-f">Punti = crediti puntati × quota di ogni giocata vincente, sommati su tutte le partite concluse.</div></div>`
+    : `<div class="empty"><div class="ico">🏆</div><h3>Ancora nessun giocatore</h3></div>`;
+  return navbar({ title: "Classifica", right: meAvatar() }) + `<h1 class="largetitle">Classifica</h1>` + podium + list;
 }
 
 // ---------- me ----------
 function viewMe() {
   const p = player(me);
-  if (!p) return navbar({ title: "Me" }) + `<h1 class="largetitle">Me</h1>`;
+  if (!p) return navbar({ title: "Profilo" }) + `<h1 class="largetitle">Profilo</h1>`;
   const rankIdx = S.leaderboard.findIndex((r) => r.playerId === me);
   const row = S.leaderboard[rankIdx] || { points: 0, games: 0 };
   const history = S.games.filter((g) => g.status === "settled" && g.results[me] != null);
   return navbar({ title: p.name }) +
-    `<h1 class="largetitle">Me</h1>
+    `<h1 class="largetitle">Profilo</h1>
     <div class="section"><div class="list"><div class="row" style="padding:16px">
       <div class="avatar lg">${esc(initials(p.name))}</div>
       <div class="grow"><div style="font-size:22px;font-weight:600">${esc(p.name)}</div>
-      <div class="sub">#${rankIdx + 1} of ${S.leaderboard.length} · ${row.points} pts · ${row.games} games</div></div>
+      <div class="sub">#${rankIdx + 1} di ${S.leaderboard.length} · ${row.points} pt · ${row.games} partit${row.games === 1 ? "a" : "e"}</div></div>
     </div></div></div>
-    ${history.length ? `<div class="section-h">History</div><div class="section"><div class="list">${history.map((g) =>
+    ${history.length ? `<div class="section-h">Storico</div><div class="section"><div class="list">${history.map((g) =>
       `<a class="row" href="#/game/${g.id}"><div class="grow"><div class="title truncate">${esc(g.title)}</div><div class="sub">${esc(fmtDate(g.startsAt))}</div></div>
        <span class="pts-r ${g.results[me] > 0 ? "green" : ""}">+${g.results[me]}</span>${ICON.chev}</a>`).join("")}</div></div>` : ""}
-    <div class="section"><div class="list"><button class="row" id="switch"><span class="grow tint">Switch player</span></button></div>
-    <div class="section-f">This phone remembers who you are. Switch if someone else is using it.</div></div>`;
+    <div class="section"><div class="list"><button class="row" id="switch"><span class="grow tint">Cambia giocatore</span></button></div>
+    <div class="section-f">Questo telefono si ricorda chi sei. Cambia se lo sta usando qualcun altro.</div></div>`;
 }
 
 document.addEventListener("click", (e) => {
@@ -313,15 +313,15 @@ function openWhoSheet(dismissable = false) {
   sheetOpen = true;
   const wrap = document.createElement("div");
   const close = () => { wrap.remove(); sheetOpen = false; };
-  wrap.innerHTML = `<div class="backdrop"></div><div class="sheet" role="dialog" aria-label="Choose player">
+  wrap.innerHTML = `<div class="backdrop"></div><div class="sheet" role="dialog" aria-label="Scegli giocatore">
     <div class="grabber"></div>
-    <h2>Who's betting? 🏀</h2>
-    <p class="lead">Pick your name. No passwords — play fair!</p>
-    ${S.players.length ? `<div class="section-h">Players</div><div class="section"><div class="list">${S.players.map((p) =>
+    <h2>Chi gioca? 🏀</h2>
+    <p class="lead">Scegli il tuo nome. Niente password — gioca pulito!</p>
+    ${S.players.length ? `<div class="section-h">Giocatori</div><div class="section"><div class="list">${S.players.map((p) =>
       `<button class="row indent" data-pick="${p.id}"><span class="avatar">${esc(initials(p.name))}</span><span class="grow">${esc(p.name)}</span>${p.id === me ? ICON.check : ""}</button>`).join("")}</div></div>` : ""}
-    <div class="section-h">New here?</div>
-    <div class="section"><div class="list"><div class="field"><input id="newname" placeholder="Your name" maxlength="30" autocomplete="nickname"></div></div></div>
-    <div class="section"><button class="btn" id="join">Join the contest</button>${dismissable ? `<button class="btn plain" id="cancel">Cancel</button>` : ""}</div>
+    <div class="section-h">Sei nuovo?</div>
+    <div class="section"><div class="list"><div class="field"><input id="newname" placeholder="Il tuo nome" maxlength="30" autocomplete="nickname"></div></div></div>
+    <div class="section"><button class="btn" id="join">Entra nella sfida</button>${dismissable ? `<button class="btn plain" id="cancel">Annulla</button>` : ""}</div>
   </div>`;
   document.body.appendChild(wrap);
   const pick = (id) => { me = id; store.set("playerId", id); close(); load(); };
@@ -329,7 +329,7 @@ function openWhoSheet(dismissable = false) {
   const join = async () => {
     const name = $("#newname", wrap).value.trim();
     if (!name) return $("#newname", wrap).focus();
-    try { const p = await rpc("add_player", { p_name: name }); pick(p.id); toast(`Welcome, ${p.name}!`); }
+    try { const p = await rpc("add_player", { p_name: name }); pick(p.id); toast(`Benvenuto, ${p.name}!`); }
     catch (e) { toast(e.message, true); }
   };
   $("#join", wrap).addEventListener("click", join);

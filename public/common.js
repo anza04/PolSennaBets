@@ -12,11 +12,26 @@ async function rpc(fn, args = {}) {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
     body: JSON.stringify(args),
-  });
+  }).catch(() => { throw new Error("Connessione assente — riprova"); });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
+  if (!res.ok) throw new Error(itErr(data.message) || `Errore ${res.status}`);
   return data;
 }
+
+// The database speaks English; show its messages in Italian.
+const IT_ERRORS = [
+  [/^Name required$/, "Inserisci un nome"],
+  [/^Game not found$/, "Partita non trovata"],
+  [/^Player not found$/, "Giocatore non trovato"],
+  [/^Betting is closed for this game$/, "Le giocate per questa partita sono chiuse"],
+  [/^Invalid bet or option$/, "Scommessa o opzione non valida"],
+  [/^Only one pick per bet$/, "Una sola scelta per scommessa"],
+  [/^You only have (\d+) credits$/, "Hai solo $1 crediti"],
+  [/^Wrong admin key$/, "Chiave admin errata"],
+  [/^Add at least one bet$/, "Aggiungi almeno una scommessa"],
+  [/^Every bet needs at least 2 options$/, "Ogni scommessa deve avere almeno 2 opzioni"],
+];
+const itErr = (m) => { for (const [re, it] of IT_ERRORS) if (re.test(m || "")) return m.replace(re, it); return m; };
 
 // ---------- scoring (mirrors what everyone can see once a game is locked) ----------
 function wagerPoints(g, w) {
@@ -66,22 +81,22 @@ const initials = (name) => (name || "?").trim().split(/\s+/).map((w) => w[0]).sl
 
 function fmtDate(iso) {
   const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }) +
-    " · " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" }) +
+    " · " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 }
 
 function countdown(ms) {
-  if (ms <= 0) return "Started";
+  if (ms <= 0) return "Iniziata";
   const m = Math.floor(ms / 60000), h = Math.floor(m / 60), d = Math.floor(h / 24);
-  if (d > 0) return `${d}d ${h % 24}h left`;
-  if (h > 0) return `${h}h ${m % 60}m left`;
-  return `${Math.max(1, m)}m left`;
+  if (d > 0) return `mancano ${d}g ${h % 24}h`;
+  if (h > 0) return `mancano ${h}h ${m % 60}m`;
+  return `mancano ${Math.max(1, m)}m`;
 }
 
 function gameStatus(g) {
-  if (g.status === "settled") return { cls: "final", label: "Final" };
-  if (g.locked) return { cls: "live", label: g.status === "closed" ? "Awaiting results" : "Closed" };
-  return { cls: "open", label: "Open" };
+  if (g.status === "settled") return { cls: "final", label: "Conclusa" };
+  if (g.locked) return { cls: "live", label: g.status === "closed" ? "Attesa risultati" : "Chiusa" };
+  return { cls: "open", label: "Aperta" };
 }
 
 const odds = (o) => "×" + Number(o).toFixed(o % 1 ? 2 : 1).replace(/0$/, "");
