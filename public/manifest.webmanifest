@@ -1,0 +1,9 @@
+{
+  "name": "PolSenna Bets",
+  "short_name": "PolSenna",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F2F2F7",
+  "theme_color": "#FF9500",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
